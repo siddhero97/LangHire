@@ -48,11 +48,46 @@ def save_jobs(jobs: dict):
 
 
 async def collect_for_title(title: str, existing_jobs: dict, profile: dict, max_jobs: int = 0, filters: dict | None = None) -> list[dict]:
-    """Use an agent to collect job listings for a single title."""
+    """Use an agent or headless API to collect job listings for a single title."""
     import json as _json, re as _re
     from datetime import datetime, timezone
-
-    locations = ", ".join(profile["target_locations"])
+    
+    try:
+        from core.config import load_settings
+        from sources.collectors import collect_with_apify
+    except ImportError:
+        from backend.core.config import load_settings
+        from backend.sources.collectors import collect_with_apify
+        
+    settings = load_settings()
+    provider = settings.get("job_collection_provider", "browser")
+    locations = ", ".join(profile.get("target_locations", []))
+    
+    if provider == "apify":
+        api_key = settings.get("apify_api_key")
+        if api_key:
+            print(f"🚀 Using Apify for headless job collection: {title} in {locations}")
+            try:
+                found_jobs = await collect_with_apify(api_key, title, locations, max_jobs)
+                # save and return
+                now = datetime.now(timezone.utc).isoformat()
+                jobs = read_jobs()
+                saved_jobs = []
+                for job in found_jobs:
+                    url = job.get("url", "")
+                    if url and url not in existing_jobs:
+                        jobs[url] = {
+                            **job, 
+                            "search_title": title, "status": "pending",
+                            "collected_at": now, "applied_at": None, "error": None,
+                        }
+                        saved_jobs.append(jobs[url])
+                write_jobs(jobs)
+                return saved_jobs
+            except Exception as e:
+                print(f"❌ Apify collection failed: {e}. Falling back to browser...")
+        else:
+            print("⚠️ Apify API key not found in settings, falling back to browser.")
 
     known_urls = [
         url for url, j in existing_jobs.items()
@@ -250,7 +285,7 @@ async def fetch_description_for_job(url: str, job: dict) -> str:
 
     agent = Agent(
         task=(
-            f"Go to {url} on LinkedIn. Extract the FULL job description text including:\n"
+            f"Go to {url}. Extract the FULL job description text including:\n"
             f"- Job title\n- Company name\n- Location\n- About the job / description\n"
             f"- Qualifications / requirements\n- Skills mentioned\n- Responsibilities\n\n"
             f"Output ALL of this text in your memory field prefixed with:\n"
@@ -328,6 +363,18 @@ async def main():
     parser.add_argument("--skip-descriptions", action="store_true", help="Skip description fetching phase")
     args = parser.parse_args()
 
+    try:
+        from core.config import load_llm_settings
+        from core.llm_factory import create_llm
+    except ImportError:
+        from backend.core.config import load_llm_settings
+        from backend.core.llm_factory import create_llm
+
+    llm_settings = load_llm_settings()
+    if llm_settings.get("provider"):
+        config.get_llm = lambda: create_llm(llm_settings)
+        print(f"🤖 Using {llm_settings['provider']} LLM ({llm_settings.get(llm_settings['provider'], {}).get('model')}) from settings")
+
     profile = load_json(CANDIDATE_PROFILE, {})
     jobs = load_jobs()
     LOGS_DIR.mkdir(exist_ok=True)
@@ -371,6 +418,53 @@ async def main():
                         continue
                 print(f"  Error: {e}")
                 break
+
+    try:
+        from core.config import load_settings
+        from sources.collectors import collect_with_greenhouse, collect_with_firecrawl
+    except ImportError:
+        from backend.core.config import load_settings
+        from backend.sources.collectors import collect_with_greenhouse, collect_with_firecrawl
+
+    settings = load_settings()
+    direct_boards = settings.get("direct_ats_boards", [])
+    
+    # Process Direct ATS Boards and Firecrawl URLs
+    if direct_boards:
+        print(f"\n{'='*60}")
+        print(f"Collecting from Direct ATS Boards & Firecrawl: {len(direct_boards)} configured")
+        print(f"{'='*60}")
+        for board in direct_boards:
+            print(f"  Fetching: {board}")
+            try:
+                if board.startswith("http"):
+                    # Use firecrawl if API key is present
+                    api_key = settings.get("firecrawl_api_key")
+                    if api_key:
+                        found_jobs = await collect_with_firecrawl(api_key, board)
+                    else:
+                        print(f"    ⚠️ Skipping {board}: Firecrawl API key not set.")
+                        continue
+                else:
+                    # Assume Greenhouse board token
+                    found_jobs = await collect_with_greenhouse(board)
+                    
+                jobs = load_jobs()
+                now = datetime.now(timezone.utc).isoformat()
+                added = 0
+                for job in found_jobs:
+                    url = job.get("url", "")
+                    if url and url not in jobs:
+                        jobs[url] = {
+                            **job,
+                            "search_title": "Direct Feed", "status": "pending",
+                            "collected_at": now, "applied_at": None, "error": None,
+                        }
+                        added += 1
+                write_jobs(jobs)
+                print(f"    ✅ Found {len(found_jobs)} jobs ({added} new)")
+            except Exception as e:
+                print(f"    ❌ Failed to collect from {board}: {e}")
 
     cred_task.cancel()
 

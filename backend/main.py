@@ -814,6 +814,55 @@ async def start_collection(body: CollectRequest):
             except Exception as e:
                 print(f"  Error: {e}")
 
+        # Phase 1.5: Direct ATS Boards & Firecrawl
+        if not _collection_status.get("cancel_requested"):
+            settings = load_settings()
+            direct_boards = settings.get("direct_ats_boards", [])
+            if direct_boards:
+                print(f"\n{'='*60}")
+                print(f"Collecting from Direct ATS Boards & Firecrawl: {len(direct_boards)} configured")
+                print(f"{'='*60}")
+                try:
+                    from sources.collectors import collect_with_greenhouse, collect_with_firecrawl
+                except ImportError:
+                    from backend.sources.collectors import collect_with_greenhouse, collect_with_firecrawl
+                    
+                for board in direct_boards:
+                    if _collection_status.get("cancel_requested"):
+                        break
+                    print(f"  Fetching: {board}")
+                    try:
+                        if board.startswith("http"):
+                            api_key = settings.get("firecrawl_api_key")
+                            if api_key:
+                                found_jobs = await collect_with_firecrawl(api_key, board)
+                            else:
+                                print(f"    ⚠️ Skipping {board}: Firecrawl API key not set.")
+                                continue
+                        else:
+                            found_jobs = await collect_with_greenhouse(board)
+                            
+                        jobs = read_jobs()
+                        now = __import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat()
+                        added = 0
+                        for job in found_jobs:
+                            url = job.get("url", "")
+                            if url and url not in jobs:
+                                jobs[url] = {
+                                    **job,
+                                    "search_title": "Direct Feed", "status": "pending",
+                                    "collected_at": now, "applied_at": None, "error": None,
+                                }
+                                added += 1
+                        from core.shared_config import write_jobs
+                        write_jobs(jobs)
+                        print(f"    ✅ Found {len(found_jobs)} jobs ({added} new)")
+                        # update status
+                        _collection_status["collected"] += added
+                        _collection_status["log"].append(f"Collected {added} jobs from {board}")
+                    except Exception as e:
+                        print(f"    ❌ Failed to collect from {board}: {e}")
+
         # Phase 2: Fetch descriptions for collected jobs
         if not _collection_status.get("cancel_requested"):
             jobs = read_jobs()
