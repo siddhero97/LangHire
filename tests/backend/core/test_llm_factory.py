@@ -147,7 +147,7 @@ def test_create_llm_gemini_default_model():
     """gemini with empty sub-config uses the default model."""
     llm = llm_factory.create_llm({"provider": "gemini"})
     assert isinstance(llm, ChatGoogle)
-    assert llm.model == "gemini-2.5-pro"
+    assert llm.model == "gemini-3.8-flash"
 
 
 def test_create_llm_openrouter():
@@ -161,10 +161,10 @@ def test_create_llm_openrouter():
 
 
 def test_create_llm_openrouter_default_model():
-    """openrouter default model is openai/gpt-4o."""
+    """openrouter default model is google/gemini-2.5-flash."""
     llm = llm_factory.create_llm({"provider": "openrouter"})
     assert isinstance(llm, ChatOpenAI)
-    assert llm.model == "openai/gpt-4o"
+    assert llm.model == "google/gemini-2.5-flash"
     assert llm.base_url == "https://openrouter.ai/api/v1"
 
 
