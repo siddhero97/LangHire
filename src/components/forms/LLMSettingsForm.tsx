@@ -41,8 +41,10 @@ const OPENROUTER_FALLBACK_MODELS = [
   "google/gemini-3.1-pro-preview",
   "google/gemini-2.5-flash",
   "google/gemini-2.0-flash-001",
-  "google/gemini-1.5-pro",
   "meta-llama/llama-4-maverick",
+  "zhipu/glm-4-flash",
+  "zhipu/glm-4-plus",
+  "zhipu/glm-4-air",
   "mistralai/mistral-large-2411",
 ];
 const BEDROCK_MODELS = [
