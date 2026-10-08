@@ -100,6 +100,12 @@ export interface AppSettings {
   data_dir: string;
   telemetry_enabled: boolean;
   theme?: "light" | "dark" | "system";
+  job_collection_provider?: string;
+  apify_api_key?: string;
+  firecrawl_api_key?: string;
+  direct_ats_boards?: string[];
+  customize_resume?: boolean;
+  customize_cover_letter?: boolean;
 }
 
 // ── Job ───────────────────────────────────────────────────────────────────

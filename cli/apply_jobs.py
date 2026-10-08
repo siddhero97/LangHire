@@ -138,17 +138,66 @@ async def apply_to_job(job: dict, profile: dict, qa: dict, applied_labels: list[
     memory = build_memory_context(profile, qa, applied_labels, job_url=url)
     run_started_at = datetime.now(timezone.utc)
 
+    try:
+        from core.config import load_settings
+    except ImportError:
+        from backend.core.config import load_settings
+
+    settings = load_settings()
+    customize_resume_enabled = settings.get("customize_resume", True)
+    customize_cl_enabled = settings.get("customize_cover_letter", True)
+
     resume_path = resume_path_override or RESUME_PATH
 
-    # Use tailored resume if available for this job
+    # Resume Customization (Default: Enabled)
     try:
-        from resume.tailor import get_tailored_resume_path
+        from resume.tailor import get_tailored_resume_path, tailor_resume
         tailored_path = get_tailored_resume_path(url)
         if tailored_path:
             resume_path = tailored_path
-            print(f"  📄 [W{worker_id}] Using tailored resume: {tailored_path}")
-    except ImportError:
+            print(f"  📄 [W{worker_id}] Using existing tailored resume: {tailored_path}")
+        elif customize_resume_enabled and resume_path and Path(resume_path).exists():
+            print(f"  📄 [W{worker_id}] Auto-customizing resume for {title} at {company}...")
+            job_desc = job.get("description", "") or f"{title} at {company}"
+            try:
+                res = await tailor_resume(url, job_desc, {"overview": True, "skills": True, "experience": True})
+                if res and res.get("path"):
+                    resume_path = res["path"]
+                    print(f"  ✨ [W{worker_id}] Created tailored resume: {resume_path}")
+            except Exception as te:
+                print(f"  ⚠️ [W{worker_id}] Could not auto-tailor resume, using base resume: {te}")
+    except Exception:
         pass
+
+    # Cover Letter Customization (Default: Enabled)
+    if customize_cl_enabled or not profile.get("cover_letter"):
+        try:
+            job_desc = job.get("description", "") or f"{title} at {company}"
+            cl_prompt = (
+                "Write a professional, targeted cover letter (3-4 paragraphs) for this job application.\n\n"
+                f"JOB TITLE: {title}\n"
+                f"COMPANY: {company}\n"
+                f"JOB DESCRIPTION:\n{job_desc}\n\n"
+                f"CANDIDATE PROFILE:\n"
+                f"Name: {profile.get('name', '')}\n"
+                f"Current Role: {profile.get('current_role', '')}\n"
+                f"Years of Experience: {profile.get('years_of_experience', 0)}\n"
+                f"Skills: {', '.join(profile.get('skills', []))}\n"
+                f"Education: {profile.get('education', {}).get('degree', '')} from {profile.get('education', {}).get('school', '')}\n\n"
+                "INSTRUCTIONS:\n"
+                "- Highlight candidate's top matching skills and experience for this specific job\n"
+                "- Be concise and professional\n"
+                "- Output ONLY the cover letter text — no subject lines or metadata"
+            )
+            from browser_use.llm.messages import UserMessage
+            cl_response = await llm.ainvoke([UserMessage(content=cl_prompt)])
+            customized_cl = cl_response.content if hasattr(cl_response, "content") else str(cl_response)
+            if customized_cl.strip():
+                profile["cover_letter"] = customized_cl.strip()
+                memory = build_memory_context(profile, qa, applied_labels, job_url=url)
+                print(f"  ✉️ [W{worker_id}] Auto-generated customized cover letter for {company}")
+        except Exception as cle:
+            print(f"  ⚠️ [W{worker_id}] Could not auto-generate cover letter: {cle}")
 
     # Profile email is for application forms; credentials email/password are for ATS login
     agent_sensitive_data = {

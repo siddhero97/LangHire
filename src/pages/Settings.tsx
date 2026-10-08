@@ -26,6 +26,8 @@ export default function SettingsPage() {
   const [apifyApiKey, setApifyApiKey] = useState("");
   const [firecrawlApiKey, setFirecrawlApiKey] = useState("");
   const [directAtsBoards, setDirectAtsBoards] = useState<string[]>([]);
+  const [customizeResume, setCustomizeResume] = useState(true);
+  const [customizeCoverLetter, setCustomizeCoverLetter] = useState(true);
   const [newAtsBoard, setNewAtsBoard] = useState("");
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -49,6 +51,8 @@ export default function SettingsPage() {
         setApifyApiKey(data.apify_api_key || "");
         setFirecrawlApiKey(data.firecrawl_api_key || "");
         setDirectAtsBoards(data.direct_ats_boards || []);
+        setCustomizeResume(data.customize_resume !== false);
+        setCustomizeCoverLetter(data.customize_cover_letter !== false);
         // Reconcile theme: a value saved on the backend wins over the local
         // default and is applied immediately.
         if (data.theme && data.theme !== getStoredTheme()) {
@@ -130,6 +134,8 @@ export default function SettingsPage() {
         apify_api_key: apifyApiKey,
         firecrawl_api_key: firecrawlApiKey,
         direct_ats_boards: directAtsBoards,
+        customize_resume: customizeResume,
+        customize_cover_letter: customizeCoverLetter,
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -216,6 +222,44 @@ export default function SettingsPage() {
           </button>
         </div>
         <p className="text-[13px] text-muted-foreground mt-2">PDF resume file used for job applications</p>
+
+        <div className="mt-4 space-y-3 pt-4 border-t border-border">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-foreground">Customize Resume per Job</p>
+              <p className="text-[13px] text-muted-foreground mt-0.5">
+                Automatically tailor resume keywords and content for each job application using LLM.
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer flex-shrink-0 ml-4">
+              <input
+                type="checkbox"
+                checked={customizeResume}
+                onChange={(e) => setCustomizeResume(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-secondary peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+            </label>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-foreground">Customize Cover Letter per Job</p>
+              <p className="text-[13px] text-muted-foreground mt-0.5">
+                Automatically generate a tailored cover letter for each job application using LLM.
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer flex-shrink-0 ml-4">
+              <input
+                type="checkbox"
+                checked={customizeCoverLetter}
+                onChange={(e) => setCustomizeCoverLetter(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-secondary peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+            </label>
+          </div>
+        </div>
       </Section>
 
       {/* Sensitive Data */}

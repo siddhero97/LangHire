@@ -112,6 +112,8 @@ def load_settings() -> dict:
         "apify_api_key": "",
         "firecrawl_api_key": "",
         "direct_ats_boards": [],
+        "customize_resume": True,
+        "customize_cover_letter": True,
     })
 
 
