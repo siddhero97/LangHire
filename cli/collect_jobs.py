@@ -75,7 +75,7 @@ async def collect_for_title(title: str, existing_jobs: dict, profile: dict, max_
                 saved_jobs = []
                 for job in found_jobs:
                     url = job.get("url", "")
-                    if url and url not in existing_jobs:
+                    if url and url not in jobs and url not in existing_jobs:
                         jobs[url] = {
                             **job, 
                             "search_title": title, "status": "pending",

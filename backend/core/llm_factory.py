@@ -27,17 +27,27 @@ def create_llm(settings: dict):
     if provider == "openai":
         from browser_use.llm import ChatOpenAI
         cfg = settings.get("openai", {})
+        kwargs = {}
+        max_tokens = cfg.get("max_completion_tokens") or settings.get("max_completion_tokens")
+        if max_tokens:
+            kwargs["max_completion_tokens"] = int(max_tokens)
         return ChatOpenAI(
             model=cfg.get("model", "gpt-4o"),
             api_key=cfg.get("api_key", "").strip(),
+            **kwargs,
         )
 
     elif provider == "anthropic":
         from browser_use.llm import ChatAnthropic
         cfg = settings.get("anthropic", {})
+        kwargs = {}
+        max_tokens = cfg.get("max_completion_tokens") or cfg.get("max_tokens") or settings.get("max_completion_tokens")
+        if max_tokens:
+            kwargs["max_tokens"] = int(max_tokens)
         return ChatAnthropic(
             model=cfg.get("model", "claude-sonnet-4-5"),
             api_key=cfg.get("api_key", "").strip(),
+            **kwargs,
         )
 
     elif provider == "bedrock":
@@ -69,20 +79,17 @@ def create_llm(settings: dict):
 
     elif provider == "ollama":
         # Use browser-use's native ChatOllama (not ChatOpenAI against the /v1 shim).
-        # ChatOllama drives Ollama's native `format=<schema>` grammar-constrained
-        # decoding, which small local models (e.g. gemma3:4b) honor reliably —
-        # the OpenAI-compatible `response_format` path produced truncated JSON and
-        # crashed with "Invalid JSON: EOF while parsing" (see issue #60).
         from browser_use.llm import ChatOllama
         cfg = settings.get("ollama", {})
         base_url = cfg.get("base_url", "http://localhost:11434").rstrip("/")
+        max_tokens = cfg.get("max_completion_tokens") or settings.get("max_completion_tokens") or 4096
         return ChatOllama(
             model=cfg.get("model") or "llama3.1",
             host=base_url,  # native Ollama host (NOT the /v1 OpenAI shim)
             timeout=300,
             ollama_options={
                 "num_ctx": 32768,    # large context: agent prompt + DOM/screenshot is big
-                "num_predict": 4096,  # room for full JSON output (avoids truncation)
+                "num_predict": int(max_tokens),  # room for full JSON output
                 "temperature": 0.0,
             },
         )
@@ -90,27 +97,42 @@ def create_llm(settings: dict):
     elif provider == "gemini":
         from browser_use.llm import ChatGoogle
         cfg = settings.get("gemini", {})
+        kwargs = {}
+        max_tokens = cfg.get("max_completion_tokens") or cfg.get("max_output_tokens") or settings.get("max_completion_tokens")
+        if max_tokens:
+            kwargs["max_output_tokens"] = int(max_tokens)
         return ChatGoogle(
-            model=cfg.get("model", "gemini-2.5-pro"),
+            model=cfg.get("model", "gemini-3.8-flash"),
             api_key=cfg.get("api_key", "").strip(),
+            **kwargs,
         )
 
     elif provider == "openrouter":
         from browser_use.llm import ChatOpenAI
         cfg = settings.get("openrouter", {})
+        kwargs = {}
+        max_tokens = cfg.get("max_completion_tokens") or settings.get("max_completion_tokens")
+        if max_tokens:
+            kwargs["max_completion_tokens"] = int(max_tokens)
         return ChatOpenAI(
-            model=cfg.get("model", "openai/gpt-4o"),
+            model=cfg.get("model", "google/gemini-2.5-flash"),
             api_key=cfg.get("api_key", "").strip(),
             base_url="https://openrouter.ai/api/v1",
+            **kwargs,
         )
 
     elif provider == "openai_compatible":
         from browser_use.llm import ChatOpenAI
         cfg = settings.get("openai_compatible", {})
+        kwargs = {}
+        max_tokens = cfg.get("max_completion_tokens") or settings.get("max_completion_tokens")
+        if max_tokens:
+            kwargs["max_completion_tokens"] = int(max_tokens)
         return ChatOpenAI(
             model=cfg.get("model", "default"),
             api_key=cfg.get("api_key") or "not-needed",
             base_url=cfg.get("base_url"),
+            **kwargs,
         )
 
     else:

@@ -858,8 +858,8 @@ async def start_collection(body: CollectRequest):
                         write_jobs(jobs)
                         print(f"    ✅ Found {len(found_jobs)} jobs ({added} new)")
                         # update status
-                        _collection_status["collected"] += added
-                        _collection_status["log"].append(f"Collected {added} jobs from {board}")
+                        with _status_lock:
+                            _collection_status["collected"] = _collection_status.get("collected", 0) + added
                     except Exception as e:
                         print(f"    ❌ Failed to collect from {board}: {e}")
 

@@ -21,6 +21,7 @@ async def test_collect_with_apify_success(monkeypatch):
     }
 
     mock_status_resp = MagicMock()
+    mock_status_resp.raise_for_status = MagicMock()
     mock_status_resp.json.return_value = {"data": {"status": "SUCCEEDED"}}
 
     mock_items_resp = MagicMock()
@@ -49,7 +50,8 @@ async def test_collect_with_apify_success(monkeypatch):
         return MagicMock()
 
     with patch("httpx.AsyncClient.post", side_effect=mock_post), \
-         patch("httpx.AsyncClient.get", side_effect=mock_get):
+         patch("httpx.AsyncClient.get", side_effect=mock_get), \
+         patch("backend.sources.collectors.asyncio.sleep", new_callable=AsyncMock):
         jobs = await collect_with_apify(api_key, title, location, max_jobs=5)
 
     assert len(jobs) == 1

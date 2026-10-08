@@ -26,12 +26,21 @@ async def collect_with_apify(api_key: str, title: str, location: str, max_jobs: 
         dataset_id = run_data["defaultDatasetId"]
         
         # Poll for completion
+        start_time = asyncio.get_running_loop().time()
+        max_duration = 300.0
+        status = None
         while True:
             await asyncio.sleep(5)
             status_res = await client.get(f"https://api.apify.com/v2/actor-runs/{run_id}?token={api_key}")
+            status_res.raise_for_status()
             status = status_res.json()["data"]["status"]
             if status in ["SUCCEEDED", "FAILED", "ABORTED", "TIMED-OUT"]:
                 break
+            if asyncio.get_running_loop().time() - start_time > max_duration:
+                raise TimeoutError(f"Apify run {run_id} timed out after {max_duration} seconds")
+
+        if status != "SUCCEEDED":
+            raise RuntimeError(f"Apify run {run_id} ended with status: {status}")
                 
         # Fetch results
         items_res = await client.get(f"https://api.apify.com/v2/datasets/{dataset_id}/items?token={api_key}")
@@ -112,7 +121,8 @@ async def collect_with_firecrawl(api_key: str, board_url: str) -> list[dict]:
 
 async def collect_with_greenhouse(board_token: str) -> list[dict]:
     """Collect directly from a Greenhouse public board API."""
-    url = f"https://boards-api.greenhouse.io/v1/boards/{board_token}/jobs"
+    encoded_token = urllib.parse.quote(board_token, safe="")
+    url = f"https://boards-api.greenhouse.io/v1/boards/{encoded_token}/jobs"
     async with httpx.AsyncClient(timeout=15.0) as client:
         res = await client.get(url)
         if res.status_code != 200:

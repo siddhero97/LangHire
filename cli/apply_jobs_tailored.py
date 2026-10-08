@@ -315,6 +315,19 @@ async def main():
     parser.add_argument("--no-easy-apply", dest="easy_apply", action="store_false")
     args = parser.parse_args()
 
+    try:
+        from core.config import load_llm_settings
+        from core.llm_factory import create_llm
+    except ImportError:
+        from backend.core.config import load_llm_settings
+        from backend.core.llm_factory import create_llm
+
+    llm_settings = load_llm_settings()
+    if llm_settings.get("provider"):
+        config.get_llm = lambda: create_llm(llm_settings)
+        print(f"🤖 Using {llm_settings['provider']} LLM from settings")
+
+
     jobs = load_json(JOBS_FILE, {})
     profile = load_json(CANDIDATE_PROFILE, {})
     qa = load_json(QA_FILE, {})

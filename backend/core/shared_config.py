@@ -164,8 +164,19 @@ async def credential_refresh_loop(interval_minutes: int = 14):
         refresh_credentials()
 
 
-def get_llm() -> ChatAWSBedrock:
-    """Create a fresh LLM client with current credentials."""
+def get_llm():
+    """Create a fresh LLM client using configured provider settings."""
+    try:
+        from core.config import load_llm_settings
+        from core.llm_factory import create_llm
+    except ImportError:
+        from backend.core.config import load_llm_settings
+        from backend.core.llm_factory import create_llm
+
+    settings = load_llm_settings()
+    if settings.get("provider"):
+        return create_llm(settings)
+
     session = boto3.Session(profile_name=AWS_PROFILE, region_name=AWS_REGION)
     return ChatAWSBedrock(model=MODEL_ID, session=session)
 
