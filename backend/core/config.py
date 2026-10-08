@@ -86,7 +86,7 @@ def load_llm_settings() -> dict:
         "openai": {"api_key": "", "model": "gpt-4o"},
         "anthropic": {"api_key": "", "model": "claude-sonnet-4-5"},
         "bedrock": {"access_key": "", "secret_key": "", "region": "us-west-2", "model": "us.anthropic.claude-sonnet-4-6"},
-        "gemini": {"api_key": "", "model": "gemini-2.5-pro"},
+        "gemini": {"api_key": "", "model": "gemini-3.1-pro-preview"},
         "ollama": {"base_url": "http://localhost:11434", "model": ""},
         "openrouter": {"api_key": "", "model": "qwen/qwen3.6-plus"},
     })
@@ -108,6 +108,12 @@ def load_settings() -> dict:
         "data_dir": str(get_data_dir()),
         "telemetry_enabled": True,
         "theme": "system",
+        "job_collection_provider": "browser", # options: browser, apify, firecrawl
+        "apify_api_key": "",
+        "firecrawl_api_key": "",
+        "direct_ats_boards": [],
+        "customize_resume": True,
+        "customize_cover_letter": True,
     })
 
 

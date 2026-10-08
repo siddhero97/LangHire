@@ -308,7 +308,7 @@ describe("LLMSettingsForm", () => {
       // API key password field appears.
       expect(await screen.findByPlaceholderText("AIza...")).toBeInTheDocument();
       // Model select offers the Gemini models.
-      expect(screen.getByRole("option", { name: "gemini-2.5-pro" })).toBeInTheDocument();
+      expect(screen.getByRole("option", { name: "gemini-3.1-pro-preview" })).toBeInTheDocument();
       expect(screen.getByRole("option", { name: "gemini-2.5-flash" })).toBeInTheDocument();
       // Switching provider immediate-saves with provider=gemini.
       await waitFor(() =>

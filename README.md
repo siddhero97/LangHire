@@ -231,7 +231,7 @@ All data is stored locally:
 git clone https://github.com/jaimaann/LangHire.git
 cd LangHire
 
-npm install                                    # Node dependencies
+pnpm install                                    # Node dependencies
 uv sync                                        # Python dependencies
 uv run python -m playwright install chromium   # Browser engine
 ```
@@ -329,7 +329,7 @@ Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for full guide
 ```bash
 git clone https://github.com/jaimaann/LangHire.git
 cd LangHire
-npm install && uv sync
+pnpm install && uv sync
 uv run python backend/main.py   # Terminal 1
 npm run dev                     # Terminal 2
 ```

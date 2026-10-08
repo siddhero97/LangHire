@@ -17,7 +17,15 @@ const PROVIDERS: { id: LLMProvider; nameKey: string; descKey: string }[] = [
 
 const OPENAI_MODELS = ["gpt-5.4-nano", "gpt-5.4-mini", "gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"];
 const ANTHROPIC_MODELS = ["claude-sonnet-4-5", "claude-haiku-4-5", "claude-opus-4-5"];
-const GEMINI_MODELS = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash"];
+const GEMINI_MODELS = [
+  "gemini-3.1-pro-preview",
+  "gemini-3.0-pro",
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
+  "gemini-2.0-flash-lite",
+  "gemini-1.5-pro",
+  "gemini-1.5-flash",
+];
 const OPENROUTER_FALLBACK_MODELS = [
   "qwen/qwen3.6-plus",
   "bytedance-seed/seed-2.0-lite",
@@ -30,9 +38,13 @@ const OPENROUTER_FALLBACK_MODELS = [
   "openai/gpt-4.1-mini",
   "anthropic/claude-sonnet-4",
   "anthropic/claude-haiku-4",
-  "google/gemini-2.5-pro-preview",
-  "google/gemini-2.5-flash-preview",
+  "google/gemini-3.1-pro-preview",
+  "google/gemini-2.5-flash",
+  "google/gemini-2.0-flash-001",
   "meta-llama/llama-4-maverick",
+  "zhipu/glm-4-flash",
+  "zhipu/glm-4-plus",
+  "zhipu/glm-4-air",
   "mistralai/mistral-large-2411",
 ];
 const BEDROCK_MODELS = [
@@ -46,7 +58,7 @@ const defaultSettings: LLMSettings = {
   provider: "openrouter",
   openai: { api_key: "", model: "gpt-4o" },
   anthropic: { api_key: "", model: "claude-sonnet-4-5" },
-  gemini: { api_key: "", model: "gemini-2.5-pro" },
+  gemini: { api_key: "", model: "gemini-3.1-pro-preview" },
   bedrock: { access_key: "", secret_key: "", region: "us-west-2", model: "us.anthropic.claude-sonnet-4-6", auth_mode: "profile", profile_name: "default" },
   ollama: { base_url: "http://localhost:11434", model: "" },
   openrouter: { api_key: "", model: "qwen/qwen3.6-plus" },
@@ -421,7 +433,7 @@ export default function LLMSettingsForm({ onSaved, compact }: LLMSettingsFormPro
             </div>
             <div>
               <label className="block text-sm font-semibold text-foreground mb-1.5">{t("labels.model")}</label>
-              <select value={settings.gemini?.model || "gemini-2.5-pro"} onChange={(e) => updateGemini("model", e.target.value)} className="input-base">
+              <select value={settings.gemini?.model || "gemini-3.1-pro-preview"} onChange={(e) => updateGemini("model", e.target.value)} className="input-base">
                 {GEMINI_MODELS.map((m) => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>

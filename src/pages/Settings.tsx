@@ -22,6 +22,13 @@ export default function SettingsPage() {
   const [telemetryEnabled, setTelemetryEnabled] = useState(true);
   const [theme, setThemeState] = useState<ThemeMode>(getStoredTheme());
   const [currentLanguage, setCurrentLanguage] = useState<string>(getSavedLanguage() || "");
+  const [jobCollectionProvider, setJobCollectionProvider] = useState("browser");
+  const [apifyApiKey, setApifyApiKey] = useState("");
+  const [firecrawlApiKey, setFirecrawlApiKey] = useState("");
+  const [directAtsBoards, setDirectAtsBoards] = useState<string[]>([]);
+  const [customizeResume, setCustomizeResume] = useState(true);
+  const [customizeCoverLetter, setCustomizeCoverLetter] = useState(true);
+  const [newAtsBoard, setNewAtsBoard] = useState("");
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,6 +47,12 @@ export default function SettingsPage() {
         setBlockedDomains(data.blocked_domains || []);
         setMaxFailures(data.max_failures || 8);
         setTelemetryEnabled(data.telemetry_enabled !== false);
+        setJobCollectionProvider(data.job_collection_provider || "browser");
+        setApifyApiKey(data.apify_api_key || "");
+        setFirecrawlApiKey(data.firecrawl_api_key || "");
+        setDirectAtsBoards(data.direct_ats_boards || []);
+        setCustomizeResume(data.customize_resume !== false);
+        setCustomizeCoverLetter(data.customize_cover_letter !== false);
         // Reconcile theme: a value saved on the backend wins over the local
         // default and is applied immediately.
         if (data.theme && data.theme !== getStoredTheme()) {
@@ -96,6 +109,17 @@ export default function SettingsPage() {
     setBlockedDomains(blockedDomains.filter((x) => x !== d));
   };
 
+  const addAtsBoard = () => {
+    if (newAtsBoard.trim() && !directAtsBoards.includes(newAtsBoard.trim())) {
+      setDirectAtsBoards([...directAtsBoards, newAtsBoard.trim()]);
+      setNewAtsBoard("");
+    }
+  };
+
+  const removeAtsBoard = (d: string) => {
+    setDirectAtsBoards(directAtsBoards.filter((x) => x !== d));
+  };
+
   const handleSave = async () => {
     try {
       setSaveError(null);
@@ -106,6 +130,12 @@ export default function SettingsPage() {
         max_failures: maxFailures,
         telemetry_enabled: telemetryEnabled,
         theme,
+        job_collection_provider: jobCollectionProvider,
+        apify_api_key: apifyApiKey,
+        firecrawl_api_key: firecrawlApiKey,
+        direct_ats_boards: directAtsBoards,
+        customize_resume: customizeResume,
+        customize_cover_letter: customizeCoverLetter,
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -192,6 +222,44 @@ export default function SettingsPage() {
           </button>
         </div>
         <p className="text-[13px] text-muted-foreground mt-2">PDF resume file used for job applications</p>
+
+        <div className="mt-4 space-y-3 pt-4 border-t border-border">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-foreground">Customize Resume per Job</p>
+              <p className="text-[13px] text-muted-foreground mt-0.5">
+                Automatically tailor resume keywords and content for each job application using LLM.
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer flex-shrink-0 ml-4">
+              <input
+                type="checkbox"
+                checked={customizeResume}
+                onChange={(e) => setCustomizeResume(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-secondary peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+            </label>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-foreground">Customize Cover Letter per Job</p>
+              <p className="text-[13px] text-muted-foreground mt-0.5">
+                Automatically generate a tailored cover letter for each job application using LLM.
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer flex-shrink-0 ml-4">
+              <input
+                type="checkbox"
+                checked={customizeCoverLetter}
+                onChange={(e) => setCustomizeCoverLetter(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-secondary peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+            </label>
+          </div>
+        </div>
       </Section>
 
       {/* Sensitive Data */}
@@ -210,6 +278,60 @@ export default function SettingsPage() {
             <label className="block text-sm font-semibold text-foreground mb-1.5">Password</label>
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
               className="input-base" />
+          </div>
+        </div>
+      </Section>
+
+      {/* Job Collection Settings */}
+      <Section title="Job Collection">
+        <p className="text-[13px] text-muted-foreground mb-4">
+          Configure how LangHire collects job listings. Browser collection is free but slow.
+          Headless providers are faster and bypass bot detection.
+        </p>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-1.5">Collection Provider</label>
+            <select
+              value={jobCollectionProvider}
+              onChange={(e) => setJobCollectionProvider(e.target.value)}
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-card"
+            >
+              <option value="browser">Interactive Browser (Default, Local)</option>
+              <option value="apify">Apify (Fast, Headless APIs)</option>
+            </select>
+          </div>
+
+          {jobCollectionProvider === "apify" && (
+            <div>
+              <label className="block text-sm font-semibold text-foreground mb-1.5">Apify API Key</label>
+              <input type="password" value={apifyApiKey} onChange={(e) => setApifyApiKey(e.target.value)}
+                className="input-base" placeholder="apify_api_..." />
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-1.5">Firecrawl API Key (Optional)</label>
+            <input type="password" value={firecrawlApiKey} onChange={(e) => setFirecrawlApiKey(e.target.value)}
+              className="input-base" placeholder="fc-..." />
+            <p className="text-[12px] text-muted-foreground mt-1">
+              Used if you provide Firecrawl URLs in the Direct ATS list.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-1.5">Direct ATS Boards</label>
+            <p className="text-[12px] text-muted-foreground mb-2">
+              Add Greenhouse board tokens (e.g. `stripe`) or direct company URLs (for Firecrawl) to automatically collect jobs from these specific companies.
+            </p>
+            <TagInput
+              tags={directAtsBoards}
+              value={newAtsBoard}
+              onChange={setNewAtsBoard}
+              onAdd={addAtsBoard}
+              onRemove={removeAtsBoard}
+              placeholder="e.g. stripe, airbnb, or https://careers.company.com"
+              variant="default"
+            />
           </div>
         </div>
       </Section>
